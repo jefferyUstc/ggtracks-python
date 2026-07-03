@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ggtracks logo">
+  <defs>
+    <linearGradient id="ggtExon" x1="0" y1="52" x2="0" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="ggtCov" x1="0" y1="80" x2="0" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE" stop-opacity="0.90"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.07"/>
+    </linearGradient>
+  </defs>
+
+  <!-- splice-junction arc: exon A donor → exon C acceptor, skipping exon B -->
+  <path d="M40 52 C40 24 88 24 88 52" stroke="#F59E0B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="40" cy="52" r="2.6" fill="#F59E0B"/>
+  <circle cx="88" cy="52" r="2.6" fill="#F59E0B"/>
+
+  <!-- gene-model track: intron line + strand chevrons + exon blocks -->
+  <path d="M40 60 H88" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"/>
+  <path d="M45.5 56.5 L49.5 60 L45.5 63.5" stroke="#4F46E5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M77.5 56.5 L81.5 60 L77.5 63.5" stroke="#4F46E5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="20" y="52" width="20" height="16" rx="2.5" fill="url(#ggtExon)"/>
+  <rect x="56" y="52" width="16" height="16" rx="2.5" fill="url(#ggtExon)"/>
+  <rect x="88" y="52" width="20" height="16" rx="2.5" fill="url(#ggtExon)"/>
+
+  <!-- coverage track: read-depth area peaking over each exon -->
+  <path d="M20 106 C25 106 27 82 33 82 C39 82 43 97 49 97 C55 97 59 83 65 83 C71 83 75 97 81 97 C87 97 89 82 95 82 C101 82 103 106 108 106 Z" fill="url(#ggtCov)"/>
+  <path d="M20 106 C25 106 27 82 33 82 C39 82 43 97 49 97 C55 97 59 83 65 83 C71 83 75 97 81 97 C87 97 89 82 95 82 C101 82 103 106 108 106" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
