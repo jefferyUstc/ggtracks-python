@@ -15,6 +15,7 @@ free-y facets.
 
 from __future__ import annotations
 
+import copy
 from typing import Any, List, Optional, Sequence, Tuple
 
 import ggplot2_py as gg
@@ -129,6 +130,12 @@ class Track:
         self.y_breaks = None if y_breaks is None else list(y_breaks)
         self.y_labels = None if y_labels is None else list(y_labels)
         self.range_label = bool(range_label)
+
+    def __repr__(self) -> str:
+        bits = [f"{self.name!r}", f"layers={len(self.layers)}", f"height={self.height!r}"]
+        if self.y_limits is not None:
+            bits.append(f"y_limits={self.y_limits!r}")
+        return f"<Track {' '.join(bits)}>"
 
 
 def _format_range(lo: float, hi: float) -> str:
@@ -352,33 +359,42 @@ def plot_tracks(
     if not order:
         raise ValueError("plot_tracks: no track has any data to draw.")
 
+    # Ordering the facet keys means rewriting each layer's data — onto a
+    # *copy* of the layer. Writing through to the caller's layer would make
+    # the returned plot depend on what happens to those Track objects
+    # afterwards: build two figures from one Track list and the first would
+    # silently re-render with the second's facet order.
+    prepared: List[List[Any]] = []
     for tr in tracks:
+        layers: List[Any] = []
         for lyr in tr.layers:
             data = getattr(lyr, "data", None)
-            if not isinstance(data, _pd.DataFrame):
-                continue
-            touched = False
-            d = data.copy()
-            if "track" in d.columns:
-                d["track"] = _as_facet_column(d["track"], order, "track")
-                touched = True
-            if loci is not None and "locus" in d.columns:
-                d["locus"] = _as_facet_column(d["locus"], loci, "locus")
-                touched = True
-            if touched:
-                lyr.data = d
+            if isinstance(data, _pd.DataFrame):
+                d = data.copy()
+                touched = False
+                if "track" in d.columns:
+                    d["track"] = _as_facet_column(d["track"], order, "track")
+                    touched = True
+                if loci is not None and "locus" in d.columns:
+                    d["locus"] = _as_facet_column(d["locus"], loci, "locus")
+                    touched = True
+                if touched:
+                    lyr = copy.copy(lyr)
+                    lyr.data = d
+            layers.append(lyr)
+        prepared.append(layers)
 
     import ggnewscale
 
     p = gg.ggplot()
     for layer in background or ():
         p = p + layer
-    for i, tr in enumerate(tracks):
+    for tr, layers in zip(tracks, prepared):
         if tr.new_scale == "fill":
             p = p + ggnewscale.new_scale_fill()
         elif tr.new_scale == "colour":
             p = p + ggnewscale.new_scale_colour()
-        for lyr in tr.layers:
+        for lyr in layers:
             p = p + lyr
         if tr.range_label and tr.name in order:
             badge = _pd.DataFrame({

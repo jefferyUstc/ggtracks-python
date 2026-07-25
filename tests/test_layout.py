@@ -14,6 +14,7 @@ import pandas as pd
 import pytest
 
 import ggplot2_py as gg
+from ggplot2_py.plot import ggplot_build
 from grid_py import Unit
 import ggtracks as ggt
 from ggtracks._render import natural_height
@@ -148,3 +149,50 @@ def test_finalize_explicit_height_wins():
     p = ggt.plot_tracks(_tracks(1.0), MAPPER, show=False)
     finalize_gg(p, show=False, height=7.25)
     assert p.fig_height == pytest.approx(7.25)
+
+
+# --------------------------------------------------------------------------
+# plot_tracks must not write through to the caller's layers
+# --------------------------------------------------------------------------
+
+
+def _two_tracks():
+    def cov(name):
+        return pd.DataFrame(
+            {"xstart": [1000, 3000], "xend": [1100, 3100],
+             "value": [5.0, 3.0], "track": name}
+        )
+    return [
+        ggt.Track(n, [ggt.geom_coverage(
+            gg.aes(xstart="xstart", xend="xend", y="value"), data=cov(n))])
+        for n in ("A", "B")
+    ]
+
+
+def _row_order(plot):
+    layout = ggplot_build(plot).layout.layout
+    return list(layout.sort_values("ROW")["track"].astype(str))
+
+
+def test_two_figures_from_one_track_list_keep_their_own_order():
+    """Ordering the facet key rewrites layer data. Writing that through to
+    the caller's layers would make the first figure re-render with the
+    second's order — silently, since both share the layer objects."""
+    tracks = _two_tracks()
+    first = ggt.plot_tracks(tracks, MAPPER, show=False, track_order=["A", "B"])
+    second = ggt.plot_tracks(tracks, MAPPER, show=False, track_order=["B", "A"])
+    assert _row_order(first) == ["A", "B"]
+    assert _row_order(second) == ["B", "A"]
+
+
+def test_the_callers_layers_are_left_alone():
+    tracks = _two_tracks()
+    before = tracks[0].layers[0].data
+    ggt.plot_tracks(tracks, MAPPER, show=False)
+    assert tracks[0].layers[0].data is before
+    assert before["track"].dtype == object
+
+
+def test_track_has_a_useful_repr():
+    text = repr(ggt.Track("coverage", [], height=2.0, y_limits=(0.0, 10.0)))
+    assert "coverage" in text and "y_limits" in text

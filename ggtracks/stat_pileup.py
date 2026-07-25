@@ -17,6 +17,7 @@ The computed row is written to ``y`` so it pairs directly with
 
 from __future__ import annotations
 
+import heapq
 from typing import Any, List
 
 import numpy as np
@@ -33,22 +34,31 @@ def pack_rows(lo: np.ndarray, hi: np.ndarray, spacing: float = 1.0) -> np.ndarra
     Intervals are assigned (in ascending ``lo`` order) to the lowest row
     whose currently-occupied right edge does not overlap; a new row opens
     only when none is free. Returns rows in the *original* input order.
+
+    Because the sweep runs in ascending ``lo``, a row that has fallen behind
+    the sweep can never be occupied again, so rows retire into a pool of
+    free indices instead of being rescanned per interval. That keeps a deep
+    pileup — where nearly every read needs its own row — from costing
+    quadratic time.
     """
-    n = len(lo)
-    order = np.argsort(lo, kind="stable")
-    row_last_hi: List[float] = []
-    rows = np.empty(n, dtype=float)
-    for idx in order:
-        placed = False
-        for r, last in enumerate(row_last_hi):
-            if lo[idx] > last:
-                rows[idx] = r * spacing
-                row_last_hi[r] = hi[idx]
-                placed = True
-                break
-        if not placed:
-            rows[idx] = len(row_last_hi) * spacing
-            row_last_hi.append(hi[idx])
+    lo = np.asarray(lo, dtype=np.float64)
+    hi = np.asarray(hi, dtype=np.float64)
+    rows = np.empty(lo.size, dtype=np.float64)
+    free: List[int] = []
+    busy: List[tuple] = []
+    opened = 0
+
+    for idx in np.argsort(lo, kind="stable"):
+        start = lo[idx]
+        while busy and busy[0][0] < start:
+            heapq.heappush(free, heapq.heappop(busy)[1])
+        if free:
+            row = heapq.heappop(free)
+        else:
+            row = opened
+            opened += 1
+        rows[idx] = row * spacing
+        heapq.heappush(busy, (hi[idx], row))
     return rows
 
 

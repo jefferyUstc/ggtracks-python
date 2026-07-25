@@ -5,25 +5,35 @@ R's ``ggtranscript`` / ``gggenes``) plus a genomic coordinate model with
 intron compression, all composable with faceting, scales and themes.
 
 Inputs are plain ``pandas`` DataFrames in **genomic coordinates** plus a
-:class:`GenomicMapper`. The package has **no coupling to any data
-container** (no AnnData / mudata / lrdata), so any genomics tool that can
-produce feature DataFrames can use it.
+:class:`GenomicMapper` — either built by hand or read straight out of an
+annotation and a signal file by :mod:`ggtracks.io`. The package has **no
+coupling to any data container** (no AnnData / mudata / lrdata); the
+readers parse *file formats*, which is what keeps that true.
 
 Public surface
 --------------
+* readers — :mod:`ggtracks.io`: :func:`read_annotations`, :class:`BigWig` /
+  :func:`read_bigwig`, :class:`BedGraph` / :func:`read_bedgraph`,
+  :func:`read_cytoband`
 * coordinate model — :class:`GenomicMapper`
 * ggplot scale / coord — :func:`scale_x_genomic`, :func:`coord_genomic`,
-  :func:`genomic_transform`
+  :func:`genomic_transform`, :func:`base_x_scale`, :func:`signal_limits`
 * geoms / stats — :func:`geom_range`, :func:`geom_intron`,
-  :func:`geom_junction`, :func:`to_intron`, :class:`StatPileup` /
-  :func:`pack_rows`
-* track composition — :class:`Track`, :func:`plot_tracks`
-* style — :func:`theme_tracks`, :func:`track_palettes`
+  :func:`geom_junction`, :func:`geom_coverage` / :class:`StatBinCoverage`,
+  :func:`geom_ideogram` / :func:`scale_fill_giemsa`,
+  :func:`geom_highlight`, :func:`geom_zoom_link`, :func:`to_intron`,
+  :class:`StatPileup` / :func:`pack_rows`
+* track composition — :class:`Track`, :func:`plot_tracks`,
+  :func:`natural_height`
+* transcript helpers — :func:`rank_transcripts`,
+  :func:`collapse_transcripts`
+* style — :func:`theme_tracks`, :func:`track_palettes`,
+  :func:`signal_palette`
 """
 
 from __future__ import annotations
 
-from importlib.metadata import PackageNotFoundError, version as _version
+from importlib.metadata import PackageNotFoundError as _PackageNotFoundError, version as _version
 
 from . import io
 from .io import (
@@ -73,7 +83,7 @@ from ._render import finalize_gg, natural_height
 
 try:
     __version__ = _version("ggtracks-python")
-except PackageNotFoundError:
+except _PackageNotFoundError:
     __version__ = "0.0.0"
 
 __all__ = [
