@@ -17,8 +17,10 @@ FORBIDDEN = {"lrdata", "sclr", "mudata", "anndata", "scanpy"}
 
 
 def _source_files():
+    # rglob, not glob: subpackages (e.g. ``ggtracks.io``) must be scanned too,
+    # otherwise a container import could hide one directory down.
     pkg_dir = pathlib.Path(ggtracks.__file__).parent
-    return sorted(pkg_dir.glob("*.py"))
+    return sorted(pkg_dir.rglob("*.py"))
 
 
 def test_no_container_imports_in_source():

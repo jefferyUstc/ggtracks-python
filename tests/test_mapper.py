@@ -136,3 +136,72 @@ class TestGenomicMapper:
         assert len(disp) == 3
         assert int(gen[0]) == 1000
         assert int(gen[-1]) == 2000
+
+
+# --------------------------------------------------------------------------
+# the tiling contract
+# --------------------------------------------------------------------------
+
+
+def test_spans_must_leave_no_hole():
+    """A hole has no display coordinate of its own, so positions inside it
+    would extrapolate onto the *next* span — two genomic positions landing on
+    one display position."""
+    with pytest.raises(ValueError, match="leaves a hole"):
+        GenomicMapper([(0, 100, "exon"), (200, 300, "exon")])
+
+
+def test_overlap_is_reported_as_overlap():
+    with pytest.raises(ValueError, match="overlaps"):
+        GenomicMapper([(0, 200, "exon"), (100, 300, "exon")])
+
+
+def test_from_intervals_always_tiles():
+    """Whatever gaps the input exons leave, the factory fills them."""
+    m = GenomicMapper.from_intervals([(100, 200), (500, 600), (900, 1000)])
+    assert all(a.genomic_end == b.genomic_start for a, b in zip(m.spans, m.spans[1:]))
+
+
+# --------------------------------------------------------------------------
+# scalar and vectorised paths must agree
+# --------------------------------------------------------------------------
+
+
+MIXED = GenomicMapper.from_intervals(
+    [(i * 1000, i * 1000 + 300) for i in range(12)], intron_scale=0.1
+)
+
+
+def test_scalar_to_display_matches_the_array_path():
+    positions = np.linspace(-500, 12_000, 997)
+    scalar = np.array([MIXED.to_display(p) for p in positions])
+    assert np.array_equal(scalar, MIXED.to_display_array(positions))
+
+
+def test_scalar_to_genomic_matches_the_array_path():
+    lo, hi = MIXED.display_extent
+    coords = np.linspace(lo - 50, hi + 50, 997)
+    scalar = np.array([MIXED.to_genomic(d) for d in coords])
+    assert np.array_equal(scalar, MIXED.to_genomic_array(coords))
+
+
+def test_scalar_round_trip_on_exonic_positions():
+    for p in (0, 150, 299, 1000, 11_299):
+        assert MIXED.to_genomic(MIXED.to_display(p)) == pytest.approx(p)
+
+
+def test_out_of_range_positions_clamp_to_the_extent():
+    lo_g, hi_g = MIXED.genomic_extent
+    lo_d, hi_d = MIXED.display_extent
+    assert MIXED.to_display(lo_g - 10_000) == pytest.approx(lo_d)
+    assert MIXED.to_display(hi_g + 10_000) == pytest.approx(hi_d)
+    assert MIXED.to_genomic(lo_d - 500) == pytest.approx(lo_g)
+    assert MIXED.to_genomic(hi_d + 500) == pytest.approx(hi_g)
+
+
+def test_mapping_is_monotone_and_injective():
+    """The property the tiling rule exists to guarantee."""
+    positions = np.linspace(*MIXED.genomic_extent, 2000)
+    display = MIXED.to_display_array(positions)
+    assert np.all(np.diff(display) >= 0)
+    assert len(np.unique(np.round(display, 9))) == len(display)

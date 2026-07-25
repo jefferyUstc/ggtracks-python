@@ -1,16 +1,36 @@
-"""Curated qualitative colour palettes for track plots.
+"""Colour palettes for track plots — two families, two jobs.
 
-Faithful values from jjAnno's ``useMyCol`` (the ArchR/Kelly/Wes-Anderson
-families commonly used for genomics tracks). Exposed as a simple getter
-so track geoms can drive ``scale_fill_manual``/``scale_colour_manual``
-with a coherent, colour-blind-aware set rather than ad-hoc hex literals.
+**Qualitative** (:data:`TRACK_PALETTES` / :func:`track_palettes`) — the
+ArchR / Kelly / Wes-Anderson families commonly used for genomics tracks.
+Use these for **categories**: read clusters, cell types, feature classes.
+Exposed as a simple getter so track geoms can drive
+``scale_fill_manual``/``scale_colour_manual`` with a coherent,
+colour-blind-aware set rather than ad-hoc hex literals.
+
+**Sequential** (:data:`SIGNAL_PALETTES` / :func:`signal_palette`) — light→dark
+ramps for **signal tracks** (coverage, pileup depth, IP vs input). Genome
+browsers encode intensity with *lightness*, not hue: a darker track reads as
+"more signal" without consulting a legend, survives greyscale printing, and
+several stacked tracks do not fight each other for attention. Reaching for a
+20-colour qualitative palette to paint four coverage tracks is the common
+mistake this family exists to prevent.
+
+The two families differ in how they answer for more colours than they hold:
+a qualitative palette **recycles** (with a warning) because its entries are
+arbitrary and unordered; a sequential ramp **interpolates**, because it is
+defined by its endpoints and any number of steps between them is meaningful.
 """
 
 from __future__ import annotations
 
 from typing import Optional
 
-__all__ = ["TRACK_PALETTES", "track_palettes"]
+__all__ = [
+    "TRACK_PALETTES",
+    "track_palettes",
+    "SIGNAL_PALETTES",
+    "signal_palette",
+]
 
 TRACK_PALETTES: dict[str, list[str]] = {
     "stallion": [
@@ -101,3 +121,70 @@ def track_palettes(name: str = "stallion", n: Optional[int] = None) -> list[str]
     )
     reps = (n + len(cols) - 1) // len(cols)
     return (cols * reps)[:n]
+
+
+#: Sequential light→dark ramps for signal tracks, as ``(light, dark)``
+#: endpoints. ``"grey"`` is the genome-browser default (see
+#: :func:`signal_palette`); the hued ramps keep the same lightness span
+#: at a fixed hue, for when several signal groups must also be told apart.
+SIGNAL_PALETTES: dict[str, tuple[str, str]] = {
+    "grey": ("#D0D0D0", "#1A1A1A"),
+    "blue": ("#DEEBF7", "#08306B"),
+    "red": ("#FEE0D2", "#67000D"),
+    "green": ("#E5F5E0", "#00441B"),
+    "purple": ("#EFEDF5", "#3F007D"),
+    "orange": ("#FEE6CE", "#7F2704"),
+}
+
+
+def signal_palette(name: str = "grey", n: Optional[int] = None) -> list[str]:
+    """Return *n* colours along a sequential light→dark signal ramp.
+
+    Parameters
+    ----------
+    name
+        One of :data:`SIGNAL_PALETTES` (default ``"grey"``, the IGV-style
+        greyscale).
+    n
+        How many shades to return, evenly spaced along the ramp.
+        ``None`` returns the two endpoints — the ramp's own definition.
+
+        ``n=1`` is a deliberate special case: it returns the **dark** end,
+        not the light one. A lone coverage track should be prominent, and
+        an evenly-spaced sample of size one is otherwise ambiguous.
+
+    Returns
+    -------
+    list of str
+        Hex colours, lightest first (so the last entry is always the
+        darkest — a natural fit for ``control → treatment`` orderings).
+
+    Raises
+    ------
+    KeyError
+        Unknown ramp name (fail loud rather than silently defaulting).
+    ValueError
+        ``n`` is not a positive integer.
+
+    Examples
+    --------
+    >>> signal_palette("grey", n=2)      # input (light) vs IP (dark)
+    ['#d0d0d0', '#1a1a1a']
+    """
+    if name not in SIGNAL_PALETTES:
+        raise KeyError(
+            f"signal_palette: unknown ramp {name!r}; choose from "
+            f"{sorted(SIGNAL_PALETTES)}."
+        )
+    low, high = SIGNAL_PALETTES[name]
+    if n is None:
+        return [low, high]
+    if not isinstance(n, int) or isinstance(n, bool) or n < 1:
+        raise ValueError(f"signal_palette: n must be a positive int (got {n!r}).")
+    if n == 1:
+        return [high]
+
+    from scales import seq_gradient_pal
+
+    ramp = seq_gradient_pal(low, high)
+    return list(ramp([i / (n - 1) for i in range(n)]))

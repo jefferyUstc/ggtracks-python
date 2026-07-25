@@ -14,8 +14,9 @@ that survive are the parts truly *no* transcript exons.
 
 from __future__ import annotations
 
+import bisect
 from dataclasses import dataclass
-from typing import Iterable, Literal, Sequence
+from typing import Iterable, List, Literal, Sequence
 
 import numpy as np
 
@@ -53,8 +54,13 @@ class GenomicMapper:
         span's length is ``end - start``. The coordinate origin is the
         caller's (0- or 1-based both work): the mapper only computes
         *relative* layout, and ``to_genomic`` returns positions in the same
-        frame you supplied. Spans must be in strict increasing order and
-        must not overlap.
+        frame you supplied.
+
+        The spans must **tile** the region: each one starts exactly where
+        the previous ended, with no overlap and no hole. A hole has no
+        display coordinate to map into, so allowing one would silently give
+        two genomic positions the same display position.
+        :meth:`from_intervals` builds a tiling for you.
     intron_mode
         How intron spans are compressed (only spans of kind ``"intron"``
         with genomic length ``>= intron_min`` are affected):
@@ -81,8 +87,8 @@ class GenomicMapper:
     Raises
     ------
     ValueError
-        Spans are empty, not strictly ordered, overlap, or contain a
-        non-positive length, or scale parameters are negative.
+        Spans are empty, fail to tile the region (overlap or leave a hole),
+        contain a non-positive length, or the scale parameters are negative.
     """
 
     def __init__(
@@ -93,7 +99,7 @@ class GenomicMapper:
         intron_scale: float = 0.15,
         target_gap_width: int = 100,
         intron_min: int = 20,
-        exon_scale: float | Literal["none"] = 1.0,
+        exon_scale: float = 1.0,
         collapse_introns: bool = True,
     ) -> None:
         if not spans:
@@ -106,10 +112,7 @@ class GenomicMapper:
                 f"GenomicMapper: intron_mode must be 'scale' or 'clamp' "
                 f"(got {intron_mode!r})."
             )
-        if exon_scale == "none":
-            exon_scale_f = 1.0
-        else:
-            exon_scale_f = float(exon_scale)
+        exon_scale_f = float(exon_scale)
         if exon_scale_f <= 0:
             raise ValueError(
                 f"GenomicMapper: exon_scale must be > 0 (got {exon_scale!r})."
@@ -149,11 +152,13 @@ class GenomicMapper:
                     f"GenomicMapper: span #{i} kind={kind!r}; "
                     f"expected 'exon' or 'intron'."
                 )
-            if prev_end is not None and gs < prev_end:
+            if prev_end is not None and gs != prev_end:
+                relation = "overlaps" if gs < prev_end else "leaves a hole after"
                 raise ValueError(
-                    f"GenomicMapper: span #{i} starts at {gs} but the "
-                    f"previous span ended at {prev_end}. Spans must be "
-                    f"strictly ordered without overlap."
+                    f"GenomicMapper: span #{i} starts at {gs} and so "
+                    f"{relation} the previous span, which ended at {prev_end}. "
+                    "Spans must tile the region without gaps or overlap; "
+                    "GenomicMapper.from_intervals builds such a tiling."
                 )
             length = ge - gs
             if kind == "exon":
@@ -190,6 +195,10 @@ class GenomicMapper:
         self._d_ends = np.asarray(
             [s.display_end for s in compiled], dtype=np.float64
         )
+        # Plain lists for the scalar path: bisect over these costs a fraction
+        # of a numpy round-trip for a single value.
+        self._g_start_list: List[float] = [float(v) for v in self._g_starts]
+        self._d_start_list: List[float] = [float(v) for v in self._d_starts]
 
     @property
     def spans(self) -> tuple[GenomicSpan, ...]:
@@ -219,15 +228,24 @@ class GenomicMapper:
     def exon_scale(self) -> float:
         return self._exon_scale
 
+    def _locate(self, table: List[float], value: float) -> int:
+        """Index of the span whose *table* boundary precedes *value*."""
+        return max(0, min(len(table) - 1, bisect.bisect_right(table, value) - 1))
+
     def to_display(self, pos: int | float) -> float:
         """Map a single genomic position to its display coordinate.
 
         Positions outside the mapper's extent are clamped to the nearest
-        boundary.
+        boundary. Prefer :meth:`to_display_array` for more than a handful of
+        positions — this one avoids array machinery for a single value,
+        which is the opposite trade.
         """
-        return float(
-            self.to_display_array(np.asarray([pos], dtype=np.float64))[0]
-        )
+        span = self._spans[0]
+        lo, hi = span.genomic_start, self._spans[-1].genomic_end
+        p = min(max(float(pos), float(lo)), float(hi))
+        span = self._spans[self._locate(self._g_start_list, p)]
+        frac = (p - span.genomic_start) / span.genomic_length
+        return span.display_start + frac * span.display_length
 
     def to_display_array(self, positions: np.ndarray) -> np.ndarray:
         """Vectorized genomic → display."""
@@ -247,11 +265,19 @@ class GenomicMapper:
         return d_start + frac * (d_end - d_start)
 
     def to_genomic(self, display: float) -> float:
-        return float(
-            self.to_genomic_array(np.asarray([display], dtype=np.float64))[0]
-        )
+        """Map a single display coordinate back to a genomic position.
+
+        The inverse of :meth:`to_display`; see it for the scalar-versus-array
+        trade-off.
+        """
+        d = min(max(float(display), self._spans[0].display_start),
+                self._spans[-1].display_end)
+        span = self._spans[self._locate(self._d_start_list, d)]
+        frac = (d - span.display_start) / span.display_length
+        return span.genomic_start + frac * span.genomic_length
 
     def to_genomic_array(self, display: np.ndarray) -> np.ndarray:
+        """Vectorized display → genomic, the inverse of :meth:`to_display_array`."""
         d = np.asarray(display, dtype=np.float64)
         d_min = self._d_starts[0]
         d_max = self._d_ends[-1]
@@ -276,7 +302,7 @@ class GenomicMapper:
         intron_scale: float = 0.15,
         target_gap_width: int = 100,
         intron_min: int = 20,
-        exon_scale: float | Literal["none"] = 1.0,
+        exon_scale: float = 1.0,
         collapse_introns: bool = True,
     ) -> "GenomicMapper":
         """Build a mapper from a list of EXON intervals.

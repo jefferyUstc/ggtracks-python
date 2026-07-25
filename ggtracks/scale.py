@@ -26,7 +26,72 @@ from scales import new_transform, label_number, cut_si, extended_breaks
 
 from .mapper import GenomicMapper
 
-__all__ = ["genomic_transform", "scale_x_genomic", "coord_genomic"]
+__all__ = [
+    "genomic_transform",
+    "scale_x_genomic",
+    "base_x_scale",
+    "coord_genomic",
+    "signal_limits",
+]
+
+
+def signal_limits(
+    values: Any,
+    *,
+    q: float = 0.99,
+    expand: float = 1.25,
+    baseline: float = 0.0,
+) -> Tuple[float, float]:
+    """Robust y limits for a signal track.
+
+    Coverage is spiky: one pileup an order of magnitude above the rest will,
+    if the axis is scaled to the maximum, flatten everything else into the
+    baseline. Clipping at a high quantile keeps the body of the signal
+    readable and lets the outlier run off the top, which is what genome
+    browsers do.
+
+    Parameters
+    ----------
+    values
+        The signal values (any array-like). NaNs are ignored.
+    q
+        Upper quantile to scale to, rather than the maximum. ``1.0`` gives
+        the plain maximum back.
+    expand
+        Headroom multiplier applied to the ceiling, so peaks stop short of
+        the panel edge instead of colliding with it.
+    baseline
+        Lower limit. Signal tracks are read against zero, so that is the
+        default rather than the data minimum.
+
+    Returns
+    -------
+    tuple of float
+        ``(baseline, ceiling)``, suitable for ``Track(y_limits=...)``.
+
+    Raises
+    ------
+    ValueError
+        *q* outside ``(0, 1]``, *expand* not positive, or no finite values.
+
+    Examples
+    --------
+    >>> signal_limits([1, 2, 3, 400], q=0.9)   # doctest: +SKIP
+    (0.0, 168.0)
+    """
+    if not 0 < q <= 1:
+        raise ValueError(f"signal_limits: q must be in (0, 1] (got {q!r}).")
+    if expand <= 0:
+        raise ValueError(f"signal_limits: expand must be > 0 (got {expand!r}).")
+    arr = np.asarray(values, dtype=float).ravel()
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        raise ValueError("signal_limits: no finite values to scale to.")
+    ceiling = float(np.quantile(arr, q)) * float(expand)
+    if ceiling <= baseline:
+        # A flat-zero track still needs a non-degenerate axis.
+        ceiling = float(baseline) + 1.0
+    return float(baseline), ceiling
 
 
 def genomic_transform(
@@ -108,6 +173,28 @@ def scale_x_genomic(
         expand=expand,
         **kwargs,
     )
+    if "xstart" not in sc.aesthetics:
+        sc.aesthetics = list(sc.aesthetics) + ["xstart"]
+    return sc
+
+
+def base_x_scale(**kwargs: Any):
+    """An untransformed x scale that still recognises ``xstart``.
+
+    Needed when the genomic transform is supplied **per panel** rather than
+    globally (a multi-locus figure). Two things have to be true at once:
+
+    * the plot needs *some* x scale, or the build never creates the panel
+      scale list the per-panel scales slot into — and it will not create one
+      by itself, because ``xstart`` is not a globally registered position
+      aesthetic (see :func:`scale_x_genomic`);
+    * that scale must not transform anything, since the per-panel scale
+      transforms the data afterwards and doing it twice would compress an
+      already-compressed axis.
+
+    So: a plain continuous scale, with ``xstart`` added to its aesthetics.
+    """
+    sc = gg.scale_x_continuous(**kwargs)
     if "xstart" not in sc.aesthetics:
         sc.aesthetics = list(sc.aesthetics) + ["xstart"]
     return sc

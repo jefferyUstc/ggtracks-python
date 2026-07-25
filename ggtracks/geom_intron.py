@@ -132,18 +132,34 @@ class GeomIntron(GeomSegment):
         lineend: str,
         linejoin: str,
         na_rm: bool,
+        arrow_density: int = 1,
     ) -> Any:
         match = (data["strand"] == target) if "strand" in data.columns else (target == "+")
         ab_min = (data["x"] - data["xend"]).abs() > arrow_min
         ad = data[match & ab_min].copy()
         if ad.empty:
             return null_grob()
-        if target == "+":
-            ad["xend"] = (ad["x"] + ad["xend"]) / 2.0
-        else:
-            mid = (ad["x"] + ad["xend"]) / 2.0
-            ad["x"] = ad["xend"]
-            ad["xend"] = mid
+
+        # Each arrow is the head of a segment ending where the arrow sits.
+        # With density 1 that segment runs from the intron's start to its
+        # midpoint — the long-standing single centred arrow.
+        left = ad["x"].to_numpy(dtype=float)
+        right = ad["xend"].to_numpy(dtype=float)
+        span = right - left
+        pieces = []
+        for i in range(arrow_density):
+            part = ad.copy()
+            begin = i / arrow_density
+            point = (i + 0.5) / arrow_density
+            if target == "+":
+                part["x"] = left + span * begin
+                part["xend"] = left + span * point
+            else:
+                part["x"] = right - span * begin
+                part["xend"] = right - span * point
+            pieces.append(part)
+        ad = pd.concat(pieces, ignore_index=True) if len(pieces) > 1 else pieces[0]
+
         return seg.draw_panel(
             ad, panel_params, coord, arrow=arrow_obj,
             lineend=lineend, linejoin=linejoin, na_rm=na_rm,
@@ -184,6 +200,7 @@ class GeomIntron(GeomSegment):
         linejoin: str = "round",
         na_rm: bool = False,
         arrow_min_intron_length: float = 0,
+        arrow_density: int = 1,
         style: str = "line",
         chevron_height: float = 0.25,
         **params: Any,
@@ -194,6 +211,12 @@ class GeomIntron(GeomSegment):
             raise ValueError(
                 "GeomIntron: arrow_min_intron_length must be >= 0 "
                 f"(got {arrow_min_intron_length!r})."
+            )
+        if not isinstance(arrow_density, int) or isinstance(arrow_density, bool) \
+                or arrow_density < 1:
+            raise ValueError(
+                f"GeomIntron: arrow_density must be a positive int "
+                f"(got {arrow_density!r})."
             )
         seg = GeomSegment()
 
@@ -223,11 +246,11 @@ class GeomIntron(GeomSegment):
             _check_strand(data["strand"])
         plus_grob = self._strand_arrow_grob(
             seg, "+", data, panel_params, coord, arrow_obj,
-            arrow_min_intron_length, lineend, linejoin, na_rm,
+            arrow_min_intron_length, lineend, linejoin, na_rm, arrow_density,
         )
         minus_grob = self._strand_arrow_grob(
             seg, "-", data, panel_params, coord, arrow_obj,
-            arrow_min_intron_length, lineend, linejoin, na_rm,
+            arrow_min_intron_length, lineend, linejoin, na_rm, arrow_density,
         )
         return _ggname(
             "geom_intron", grob_tree(intron_grob, plus_grob, minus_grob)
@@ -245,6 +268,7 @@ def geom_intron(
     lineend: str = "butt",
     linejoin: str = "round",
     arrow_min_intron_length: float = 0,
+    arrow_density: int = 1,
     style: str = "line",
     chevron_height: float = 0.25,
     na_rm: bool = False,
@@ -274,6 +298,7 @@ def geom_intron(
             "lineend": lineend,
             "linejoin": linejoin,
             "arrow_min_intron_length": arrow_min_intron_length,
+            "arrow_density": arrow_density,
             "style": style,
             "chevron_height": chevron_height,
             "na_rm": na_rm,

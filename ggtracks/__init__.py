@@ -25,16 +25,51 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version as _version
 
+from . import io
+from .io import (
+    BedGraph,
+    BigWig,
+    read_annotations,
+    read_bedgraph,
+    read_bigwig,
+    read_cytoband,
+)
 from .mapper import GenomicMapper
-from .scale import coord_genomic, genomic_transform, scale_x_genomic
-from .palettes import TRACK_PALETTES, track_palettes
-from .theme import PUB_BASE_SIZE, theme_tracks
+from .scale import (
+    base_x_scale,
+    coord_genomic,
+    genomic_transform,
+    scale_x_genomic,
+    signal_limits,
+)
+from .palettes import (
+    SIGNAL_PALETTES,
+    TRACK_PALETTES,
+    signal_palette,
+    track_palettes,
+)
+from .theme import PANEL_BORDER_COLOUR, PUB_BASE_SIZE, theme_tracks
 from .geom_range import GeomRange, geom_range
 from .geom_intron import GeomIntron, StatIntron, geom_intron, to_intron
 from .geom_junction import GeomJunction, geom_junction
+from .geom_highlight import geom_highlight
+from .geom_zoom_link import GeomZoomLink, geom_zoom_link
+from .geom_ideogram import (
+    GIEMSA_COLOURS,
+    GeomIdeogram,
+    geom_ideogram,
+    scale_fill_giemsa,
+)
+from .geom_coverage import (
+    GeomCoverage,
+    StatBinCoverage,
+    geom_coverage,
+    stat_bin_coverage,
+)
+from .transcripts import collapse_transcripts, rank_transcripts
 from .stat_pileup import StatPileup, pack_rows
 from .plot_tracks import Track, plot_tracks
-from ._render import finalize_gg
+from ._render import finalize_gg, natural_height
 
 try:
     __version__ = _version("ggtracks-python")
@@ -42,14 +77,26 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 __all__ = [
+    "io",
+    "read_annotations",
+    "BigWig",
+    "read_bigwig",
+    "BedGraph",
+    "read_bedgraph",
+    "read_cytoband",
     "GenomicMapper",
     "scale_x_genomic",
     "coord_genomic",
     "genomic_transform",
+    "base_x_scale",
+    "signal_limits",
     "track_palettes",
     "TRACK_PALETTES",
+    "signal_palette",
+    "SIGNAL_PALETTES",
     "theme_tracks",
     "PUB_BASE_SIZE",
+    "PANEL_BORDER_COLOUR",
     "GeomRange",
     "geom_range",
     "GeomIntron",
@@ -58,8 +105,23 @@ __all__ = [
     "to_intron",
     "GeomJunction",
     "geom_junction",
+    "geom_highlight",
+    "GeomZoomLink",
+    "geom_zoom_link",
+    "GeomIdeogram",
+    "geom_ideogram",
+    "scale_fill_giemsa",
+    "GIEMSA_COLOURS",
+    "GeomCoverage",
+    "geom_coverage",
+    "StatBinCoverage",
+    "stat_bin_coverage",
+    "rank_transcripts",
+    "collapse_transcripts",
     "StatPileup",
     "pack_rows",
     "Track",
     "plot_tracks",
+    "finalize_gg",
+    "natural_height",
 ]
