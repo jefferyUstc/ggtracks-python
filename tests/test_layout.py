@@ -44,21 +44,21 @@ def _tracks(height):
 def test_relative_panels_measure_chrome_only():
     """A plot whose panels are relative has no absolute panel height, so the
     measurement is exactly the fixed overhead."""
-    p = ggt.plot_tracks(_tracks(1.0), MAPPER, show=False)
+    p = ggt.plot_tracks(_tracks(1.0), MAPPER)
     assert 0.2 < natural_height(p) < 1.5
 
 
 def test_chrome_grows_with_base_size():
     """The bug a hard-coded constant hides: overhead is not constant."""
-    small = natural_height(ggt.plot_tracks(_tracks(1.0), MAPPER, show=False, base_size=8))
-    large = natural_height(ggt.plot_tracks(_tracks(1.0), MAPPER, show=False, base_size=20))
+    small = natural_height(ggt.plot_tracks(_tracks(1.0), MAPPER, base_size=8))
+    large = natural_height(ggt.plot_tracks(_tracks(1.0), MAPPER, base_size=20))
     assert large > small * 1.5
 
 
 def test_absolute_panels_are_included_in_the_measurement():
-    rel = natural_height(ggt.plot_tracks(_tracks(1.0), MAPPER, show=False))
+    rel = natural_height(ggt.plot_tracks(_tracks(1.0), MAPPER))
     absolute = natural_height(
-        ggt.plot_tracks(_tracks(Unit(2, "inches")), MAPPER, show=False)
+        ggt.plot_tracks(_tracks(Unit(2, "inches")), MAPPER)
     )
     assert absolute == pytest.approx(rel + 2.0, abs=1e-6)
 
@@ -102,15 +102,15 @@ def test_float_height_is_coerced_but_unit_is_preserved():
 
 def test_figure_height_tracks_absolute_panel_size():
     """Doubling an absolute panel adds exactly that much figure height."""
-    one = ggt.plot_tracks(_tracks(Unit(1, "inches")), MAPPER, show=False)
-    two = ggt.plot_tracks(_tracks(Unit(2, "inches")), MAPPER, show=False)
+    one = ggt.plot_tracks(_tracks(Unit(1, "inches")), MAPPER)
+    two = ggt.plot_tracks(_tracks(Unit(2, "inches")), MAPPER)
     assert two.fig_height == pytest.approx(one.fig_height + 1.0, abs=1e-6)
 
 
 def test_relative_height_still_counts_as_inches():
     """Backward compatibility: a bare number keeps its historic meaning."""
-    one = ggt.plot_tracks(_tracks(1.0), MAPPER, show=False)
-    three = ggt.plot_tracks(_tracks(3.0), MAPPER, show=False)
+    one = ggt.plot_tracks(_tracks(1.0), MAPPER)
+    three = ggt.plot_tracks(_tracks(3.0), MAPPER)
     assert three.fig_height == pytest.approx(one.fig_height + 2.0, abs=1e-6)
 
 
@@ -125,7 +125,7 @@ def test_mixed_relative_and_absolute_renders(tmp_path):
                   height=1.0),
     ]
     out = tmp_path / "mixed.png"
-    ggt.plot_tracks(tracks, MAPPER, show=False, save=str(out))
+    ggt.plot_tracks(tracks, MAPPER, save=str(out))
     assert out.stat().st_size > 0
 
 
@@ -135,19 +135,19 @@ def test_mixed_relative_and_absolute_renders(tmp_path):
 
 
 def test_finalize_height_none_measures():
-    p = ggt.plot_tracks(_tracks(Unit(1.5, "inches")), MAPPER, show=False)
+    p = ggt.plot_tracks(_tracks(Unit(1.5, "inches")), MAPPER)
     measured = natural_height(p)
     from ggtracks import finalize_gg
 
-    finalize_gg(p, show=False, height=None)
+    finalize_gg(p, height=None)
     assert p.fig_height == pytest.approx(measured, abs=1e-6)
 
 
 def test_finalize_explicit_height_wins():
     from ggtracks import finalize_gg
 
-    p = ggt.plot_tracks(_tracks(1.0), MAPPER, show=False)
-    finalize_gg(p, show=False, height=7.25)
+    p = ggt.plot_tracks(_tracks(1.0), MAPPER)
+    finalize_gg(p, height=7.25)
     assert p.fig_height == pytest.approx(7.25)
 
 
@@ -179,8 +179,8 @@ def test_two_figures_from_one_track_list_keep_their_own_order():
     the caller's layers would make the first figure re-render with the
     second's order — silently, since both share the layer objects."""
     tracks = _two_tracks()
-    first = ggt.plot_tracks(tracks, MAPPER, show=False, track_order=["A", "B"])
-    second = ggt.plot_tracks(tracks, MAPPER, show=False, track_order=["B", "A"])
+    first = ggt.plot_tracks(tracks, MAPPER, track_order=["A", "B"])
+    second = ggt.plot_tracks(tracks, MAPPER, track_order=["B", "A"])
     assert _row_order(first) == ["A", "B"]
     assert _row_order(second) == ["B", "A"]
 
@@ -188,7 +188,7 @@ def test_two_figures_from_one_track_list_keep_their_own_order():
 def test_the_callers_layers_are_left_alone():
     tracks = _two_tracks()
     before = tracks[0].layers[0].data
-    ggt.plot_tracks(tracks, MAPPER, show=False)
+    ggt.plot_tracks(tracks, MAPPER)
     assert tracks[0].layers[0].data is before
     assert before["track"].dtype == object
 

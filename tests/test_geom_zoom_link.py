@@ -36,7 +36,7 @@ def _figure(**link_kwargs):
             y_labels=[""],
         ),
     ]
-    return ggt.plot_tracks(tracks, MAPPER, show=False)
+    return ggt.plot_tracks(tracks, MAPPER)
 
 
 # --------------------------------------------------------------------------
@@ -76,7 +76,7 @@ def test_colours_must_be_two_endpoints():
     ]
     with pytest.raises(Exception) as ei:
         # plot_tracks measures the figure, which draws it.
-        ggt.plot_tracks(tracks, MAPPER, show=False)
+        ggt.plot_tracks(tracks, MAPPER)
     chain, exc = [], ei.value
     while exc is not None:
         chain.append(str(exc))
@@ -108,7 +108,7 @@ def test_forgetting_the_track_column_fails_loud():
         ggt.Track("zoom", [ggt.geom_zoom_link(xstart=2600, xend=3000)], height=0.3),
     ]
     with pytest.raises(ValueError, match="drawn on every panel"):
-        ggt.plot_tracks(tracks, MAPPER, show=False)
+        ggt.plot_tracks(tracks, MAPPER)
 
 
 def test_a_trackless_layer_still_broadcasts_from_the_background():
@@ -129,7 +129,7 @@ def test_a_trackless_layer_still_broadcasts_from_the_background():
         ),
     ]
     p = ggt.plot_tracks(
-        tracks, MAPPER, show=False,
+        tracks, MAPPER,
         background=[ggt.geom_zoom_link(xstart=2600, xend=3000)],
     )
     assert len(set(ggplot_build(p).data[0]["PANEL"].unique())) == 2
@@ -196,7 +196,6 @@ def test_works_alongside_a_highlight(tmp_path):
             ),
         ],
         MAPPER,
-        show=False,
         background=[ggt.geom_highlight(xstart=2600, xend=3000, fill="#E74C3C", alpha=0.15)],
     )
     out = tmp_path / "combo.png"

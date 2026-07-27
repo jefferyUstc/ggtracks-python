@@ -54,26 +54,25 @@ def _tracks(locus_col=True):
 
 def test_exactly_one_mapper_argument_is_required():
     with pytest.raises(ValueError, match="exactly one"):
-        ggt.plot_tracks(_tracks(), show=False)
+        ggt.plot_tracks(_tracks())
     with pytest.raises(ValueError, match="exactly one"):
-        ggt.plot_tracks(_tracks(), ALPHA, mappers=MAPPERS, show=False)
+        ggt.plot_tracks(_tracks(), ALPHA, mappers=MAPPERS)
 
 
 def test_a_dict_in_the_positional_slot_points_at_mappers():
     with pytest.raises(TypeError, match="mappers="):
-        ggt.plot_tracks(_tracks(), MAPPERS, show=False)
+        ggt.plot_tracks(_tracks(), MAPPERS)
 
 
 def test_empty_mappers_is_rejected():
     with pytest.raises(ValueError, match="mappers is empty"):
-        ggt.plot_tracks(_tracks(), mappers={}, show=False)
+        ggt.plot_tracks(_tracks(), mappers={})
 
 
 def test_genomic_xlim_is_single_locus_only():
     with pytest.raises(ValueError, match="single locus"):
         ggt.plot_tracks(
-            _tracks(), mappers=MAPPERS, genomic_xlim=(1000, 2000), show=False
-        )
+            _tracks(), mappers=MAPPERS, genomic_xlim=(1000, 2000))
 
 
 # --------------------------------------------------------------------------
@@ -93,12 +92,12 @@ def test_grid_is_tracks_by_loci():
             ],
         )
     ]
-    built = ggplot_build(ggt.plot_tracks(tracks, mappers=MAPPERS, show=False))
+    built = ggplot_build(ggt.plot_tracks(tracks, mappers=MAPPERS))
     assert len(built.layout.panel_params) == 4
 
 
 def test_column_order_follows_the_mapping_order():
-    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS, show=False))
+    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS))
     layout = built.layout.layout
     ordered = layout.sort_values("COL")["locus"].astype(str).tolist()
     assert ordered == ["Alpha", "Beta"]
@@ -106,7 +105,7 @@ def test_column_order_follows_the_mapping_order():
 
 def test_each_column_gets_its_own_coordinate_system():
     """The whole point: two loci that share no genomic range still plot."""
-    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS, show=False))
+    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS))
     spans = [
         float(np.ptp(np.asarray(pp["x_range"], dtype=float)))
         for pp in built.layout.panel_params
@@ -117,7 +116,7 @@ def test_each_column_gets_its_own_coordinate_system():
 
 
 def test_tick_labels_are_each_locus_own_genomic_coordinates():
-    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS, show=False))
+    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS))
     labels = [pp.get("x_labels") for pp in built.layout.panel_params]
     joined = [" ".join(l or []) for l in labels]
     assert any("kb" in j for j in joined)
@@ -137,7 +136,7 @@ def test_the_global_x_scale_stays_untransformed():
 def test_compression_is_applied_per_panel():
     """Each column's data is compressed by *its own* mapper — faceting has
     consumed ``locus`` into ``PANEL`` by this point."""
-    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS, show=False))
+    built = ggplot_build(ggt.plot_tracks(_tracks(), mappers=MAPPERS))
     d = built.data[0]
     reach = d.groupby("PANEL", observed=True)["xend"].max().sort_index().to_numpy()
     assert reach[0] == pytest.approx(ALPHA.display_extent[1], abs=1e-6)
@@ -161,7 +160,7 @@ def test_unknown_locus_fails_loud():
         )
     ]
     with pytest.raises(ValueError, match="locus value.*Gamma"):
-        ggt.plot_tracks(tracks, mappers=MAPPERS, show=False)
+        ggt.plot_tracks(tracks, mappers=MAPPERS)
 
 
 def test_unknown_track_fails_loud():
@@ -174,14 +173,13 @@ def test_unknown_track_fails_loud():
         )
     ]
     with pytest.raises(ValueError, match="track value.*typo"):
-        ggt.plot_tracks(tracks, mappers=MAPPERS, show=False)
+        ggt.plot_tracks(tracks, mappers=MAPPERS)
 
 
 def test_a_layer_without_locus_spans_every_column():
     p = ggt.plot_tracks(
         _tracks(),
         mappers=MAPPERS,
-        show=False,
         background=[ggt.geom_highlight(xstart=1000, xend=1100)],
     )
     built = ggplot_build(p)
@@ -194,12 +192,12 @@ def test_a_layer_without_locus_spans_every_column():
 
 
 def test_single_locus_still_works_positionally():
-    p = ggt.plot_tracks(_tracks(locus_col=False), ALPHA, show=False)
+    p = ggt.plot_tracks(_tracks(locus_col=False), ALPHA)
     assert len(ggplot_build(p).layout.panel_params) == 1
 
 
 def test_renders(tmp_path):
-    p = ggt.plot_tracks(_tracks(), mappers=MAPPERS, title="two loci", show=False)
+    p = ggt.plot_tracks(_tracks(), mappers=MAPPERS, title="two loci")
     out = tmp_path / "multi.png"
     gg.ggsave(str(out), p, width=6, height=p.fig_height, dpi=72)
     assert out.stat().st_size > 0

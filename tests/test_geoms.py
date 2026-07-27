@@ -137,7 +137,7 @@ def test_plot_tracks_no_facet_leak():
                               data=gm, height=0.5)],
                 height=0.5, new_scale="fill"),
     ]
-    p = G.plot_tracks(tracks, MAPPER, track_order=["coverage", "gene model"], show=False)
+    p = G.plot_tracks(tracks, MAPPER, track_order=["coverage", "gene model"])
     built = ggplot_build(p)
     panel_of = {}
     for d in built.data:

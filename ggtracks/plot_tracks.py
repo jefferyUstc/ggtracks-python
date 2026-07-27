@@ -221,7 +221,6 @@ def plot_tracks(
     n_breaks: int = 5,
     title: str = "",
     base_size: float = PUB_BASE_SIZE,
-    show: bool = True,
     save: Any = None,
 ):
     """Stack *tracks* into one faceted browser ggplot.
@@ -454,5 +453,5 @@ def plot_tracks(
     # panels left relative. Measuring the chrome rather than assuming a
     # constant is what keeps large `base_size` figures from being clipped.
     return finalize_gg(
-        p, show=show, save=save, height=natural_height(p) + relative_inches
+        p, save=save, height=natural_height(p) + relative_inches
     )

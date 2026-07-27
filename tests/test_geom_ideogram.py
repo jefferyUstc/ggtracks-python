@@ -154,7 +154,7 @@ def test_ideogram_joins_a_multi_locus_figure(tmp_path):
             y_labels=[""],
         )
     ]
-    p = ggt.plot_tracks(tracks, mappers={"chr1": chrom}, show=False)
+    p = ggt.plot_tracks(tracks, mappers={"chr1": chrom})
     p = p + ggt.scale_fill_giemsa()
     out = tmp_path / "multi_ideo.png"
     gg.ggsave(str(out), p, width=5, height=p.fig_height, dpi=72)

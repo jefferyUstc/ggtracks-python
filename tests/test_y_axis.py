@@ -130,17 +130,17 @@ def test_shared_limits_make_two_tracks_comparable():
     """Free y would draw a weak track as tall as a strong one."""
     limits = ggt.signal_limits(np.r_[_cov("a").value, _cov("b", 10).value])
     tracks = [_track("a", y_limits=limits), _track("b", scale=10, y_limits=limits)]
-    assert len(_y_ranges(ggt.plot_tracks(tracks, MAPPER, show=False))) == 1
+    assert len(_y_ranges(ggt.plot_tracks(tracks, MAPPER))) == 1
 
 
 def test_free_y_by_default_gives_different_panel_ranges():
     tracks = [_track("a"), _track("b", scale=10)]
-    assert len(_y_ranges(ggt.plot_tracks(tracks, MAPPER, show=False))) == 2
+    assert len(_y_ranges(ggt.plot_tracks(tracks, MAPPER))) == 2
 
 
 def test_explicit_breaks_replace_the_defaults():
     built = ggplot_build(
-        ggt.plot_tracks([_track("a", y_breaks=[0.0, 5.0])], MAPPER, show=False)
+        ggt.plot_tracks([_track("a", y_breaks=[0.0, 5.0])], MAPPER)
     )
     assert len(built.layout.panel_params[0]["y_labels"]) == 2
 
@@ -149,8 +149,7 @@ def test_blank_labels_quiet_a_gene_model_row():
     """A gene-model row's y is a row index; numeric ticks on it are noise."""
     built = ggplot_build(
         ggt.plot_tracks(
-            [_track("a", y_breaks=[1.0], y_labels=[""])], MAPPER, show=False
-        )
+            [_track("a", y_breaks=[1.0], y_labels=[""])], MAPPER)
     )
     assert built.layout.panel_params[0]["y_labels"] == [""]
 
@@ -171,10 +170,9 @@ def test_labels_require_matching_breaks():
 
 
 def test_range_label_adds_one_badge_layer():
-    plain = ggt.plot_tracks([_track("a")], MAPPER, show=False)
+    plain = ggt.plot_tracks([_track("a")], MAPPER)
     badged = ggt.plot_tracks(
-        [_track("a", y_limits=(0, 12), range_label=True)], MAPPER, show=False
-    )
+        [_track("a", y_limits=(0, 12), range_label=True)], MAPPER)
     assert len(badged.layers) == len(plain.layers) + 1
 
 
@@ -186,8 +184,7 @@ def test_badge_text_reads_as_a_range(tmp_path):
     assert _format_range(0.0, 232.895) == "[0-233]"
     assert _format_range(0.0, 1.234) == "[0-1.23]"
     p = ggt.plot_tracks(
-        [_track("a", y_limits=(0, 12), range_label=True)], MAPPER, show=False
-    )
+        [_track("a", y_limits=(0, 12), range_label=True)], MAPPER)
     out = tmp_path / "badge.png"
     gg.ggsave(str(out), p, width=4, height=p.fig_height, dpi=72)
     assert out.stat().st_size > 0
@@ -199,7 +196,7 @@ def test_mixed_configured_and_free_tracks_render(tmp_path):
         _track("b", scale=10),
         _track("c", y_breaks=[1.0], y_labels=[""]),
     ]
-    p = ggt.plot_tracks(tracks, MAPPER, show=False)
+    p = ggt.plot_tracks(tracks, MAPPER)
     out = tmp_path / "mixed.png"
     gg.ggsave(str(out), p, width=4, height=p.fig_height, dpi=72)
     assert out.stat().st_size > 0
@@ -207,7 +204,7 @@ def test_mixed_configured_and_free_tracks_render(tmp_path):
 
 def test_track_order_must_name_real_tracks():
     with pytest.raises(ValueError, match="no matching Track"):
-        ggt.plot_tracks([_track("a")], MAPPER, track_order=["a", "ghost"], show=False)
+        ggt.plot_tracks([_track("a")], MAPPER, track_order=["a", "ghost"])
 
 
 # --------------------------------------------------------------------------
@@ -226,13 +223,13 @@ def test_empty_track_is_dropped_with_a_warning_not_an_error():
         ),
     ]
     with pytest.warns(UserWarning, match="no data for track"):
-        p = ggt.plot_tracks(tracks, MAPPER, show=False)
+        p = ggt.plot_tracks(tracks, MAPPER)
     assert len(ggplot_build(p).layout.panel_params) == 1
 
 
 def test_track_with_no_layers_is_dropped_too():
     with pytest.warns(UserWarning, match="no data for track"):
-        ggt.plot_tracks([_track("a"), ggt.Track("b", [])], MAPPER, show=False)
+        ggt.plot_tracks([_track("a"), ggt.Track("b", [])], MAPPER)
 
 
 def test_dropping_a_track_keeps_the_remaining_heights_aligned():
@@ -249,9 +246,9 @@ def test_dropping_a_track_keeps_the_remaining_heights_aligned():
                     height=Unit(0.5, "inches")),
                 _track("b", height=Unit(3.0, "inches")),
             ],
-            MAPPER, show=False,
+            MAPPER,
         )
-    alone = ggt.plot_tracks([_track("b", height=Unit(3.0, "inches"))], MAPPER, show=False)
+    alone = ggt.plot_tracks([_track("b", height=Unit(3.0, "inches"))], MAPPER)
     assert mixed.fig_height == pytest.approx(alone.fig_height, abs=1e-6)
 
 
@@ -264,7 +261,7 @@ def test_a_layer_missing_the_track_column_is_an_error():
             data=_cov("b").drop(columns="track"))]),
     ]
     with pytest.raises(ValueError, match="drawn on every panel"):
-        ggt.plot_tracks(tracks, MAPPER, show=False)
+        ggt.plot_tracks(tracks, MAPPER)
 
 
 def test_a_mistyped_track_value_is_reported_as_a_mismatch():
@@ -272,7 +269,7 @@ def test_a_mistyped_track_value_is_reported_as_a_mismatch():
     tracks = [ggt.Track("a", [ggt.geom_coverage(
         gg.aes(xstart="xstart", xend="xend", y="value"), data=bad)])]
     with pytest.raises(ValueError, match="match no Track"):
-        ggt.plot_tracks(tracks, MAPPER, show=False)
+        ggt.plot_tracks(tracks, MAPPER)
 
 
 def test_no_data_at_all_is_an_error():
@@ -280,4 +277,4 @@ def test_no_data_at_all_is_an_error():
         gg.aes(xstart="xstart", xend="xend", y="value"), data=_cov("a").iloc[0:0])])]
     with pytest.warns(UserWarning):
         with pytest.raises(ValueError, match="no track has any data"):
-            ggt.plot_tracks(tracks, MAPPER, show=False)
+            ggt.plot_tracks(tracks, MAPPER)

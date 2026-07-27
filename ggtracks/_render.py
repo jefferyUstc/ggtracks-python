@@ -1,9 +1,13 @@
 """Shared finalize hook for ggplot-based track figures.
 
-Follows the scanpy-style ``show=`` / ``save=`` convention: a ``ggplot``
-always renders itself in notebooks, so :func:`finalize_gg` returns the plot
-unconditionally and only adds the ``save=`` side effect.  ``show=False`` is
-kept for API symmetry with imperative plotting backends.
+A ``ggplot`` is a value, not a handle into a global figure registry: it
+renders itself in a notebook when it is the cell result, exactly once, and
+leaves nothing behind for a later flush to draw again. So there is no
+``show=`` here — :func:`finalize_gg` always returns the plot and only adds
+the ``save=`` side effect. The imperative backends need ``show=`` because
+``pyplot`` holds the figure globally and something has to decide when to
+flush it; that problem does not exist for a ggplot, and a parameter that
+cannot act would only mislead.
 
 Sizing is deliberately *measured* rather than guessed — see
 :func:`natural_height`.
@@ -51,7 +55,6 @@ def natural_height(plot: Any) -> float:
 def finalize_gg(
     plot: Any,
     *,
-    show: bool = True,
     save: Union[str, Path, None] = None,
     width: float = 4.8,
     height: Optional[float] = 3.0,
@@ -61,7 +64,7 @@ def finalize_gg(
     """Set the figure size, apply ``save=``, and return the ``ggplot``.
 
     A ``ggplot`` is the composable, inspectable artifact we want callers to
-    keep — so it is always returned. The key job here is **WYSIWYG sizing**:
+    keep — so it is always returned; there is deliberately no ``show=``. The key job here is **WYSIWYG sizing**:
     a ``GGPlot`` carries ``fig_width``/``fig_height``/``fig_dpi`` that drive
     its notebook rendering (``_repr_png_``), but those default to a fixed
     7×5 in regardless of content, and ``ggsave`` has its own 7×7 default —

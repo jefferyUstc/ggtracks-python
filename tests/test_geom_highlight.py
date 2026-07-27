@@ -39,9 +39,9 @@ def test_band_spans_the_full_panel_height():
 
 def test_band_does_not_widen_the_y_scale():
     """Infinite bounds must fill the panel, not stretch it."""
-    plain = ggt.plot_tracks(_tracks(("a",)), MAPPER, show=False)
+    plain = ggt.plot_tracks(_tracks(("a",)), MAPPER)
     banded = ggt.plot_tracks(
-        _tracks(("a",)), MAPPER, show=False,
+        _tracks(("a",)), MAPPER,
         background=[ggt.geom_highlight(xstart=150, xend=190)],
     )
     a = ggplot_build(plain).layout.panel_params[0]["y_range"]
@@ -51,7 +51,7 @@ def test_band_does_not_widen_the_y_scale():
 
 def test_band_reaches_every_track():
     p = ggt.plot_tracks(
-        _tracks(), MAPPER, show=False,
+        _tracks(), MAPPER,
         background=[ggt.geom_highlight(xstart=150, xend=190)],
     )
     built = ggplot_build(p)
@@ -62,7 +62,7 @@ def test_a_track_column_confines_the_band():
     """Carrying the facet variable opts out of the broadcast."""
     band = pd.DataFrame({"xstart": [150], "xend": [190], "track": ["b"]})
     p = ggt.plot_tracks(
-        _tracks(), MAPPER, show=False, background=[ggt.geom_highlight(band)]
+        _tracks(), MAPPER, background=[ggt.geom_highlight(band)]
     )
     assert sorted(ggplot_build(p).data[0]["PANEL"].unique()) == [2]
 
@@ -70,7 +70,7 @@ def test_a_track_column_confines_the_band():
 def test_track_layers_still_do_not_leak():
     """The broadcast must not weaken per-track containment."""
     p = ggt.plot_tracks(
-        _tracks(), MAPPER, show=False,
+        _tracks(), MAPPER,
         background=[ggt.geom_highlight(xstart=150, xend=190)],
     )
     built = ggplot_build(p)
@@ -80,7 +80,7 @@ def test_track_layers_still_do_not_leak():
 
 def test_background_layers_are_drawn_first():
     p = ggt.plot_tracks(
-        _tracks(), MAPPER, show=False,
+        _tracks(), MAPPER,
         background=[ggt.geom_highlight(xstart=150, xend=190)],
     )
     assert isinstance(p.layers[0].geom, gg.geom_rect().geom.__class__)
@@ -125,7 +125,7 @@ def test_argument_validation(kwargs, match):
 
 def test_renders(tmp_path):
     p = ggt.plot_tracks(
-        _tracks(), MAPPER, show=False,
+        _tracks(), MAPPER,
         background=[ggt.geom_highlight(xstart=150, xend=190)],
     )
     out = tmp_path / "hl.png"
