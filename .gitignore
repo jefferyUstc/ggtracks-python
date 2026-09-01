@@ -35,6 +35,9 @@ venv/
 env/
 ENV/
 
+# --- Docs build ---
+site/
+
 # --- OS / misc ---
 .DS_Store
 Thumbs.db

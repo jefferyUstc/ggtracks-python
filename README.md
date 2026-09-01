@@ -18,6 +18,16 @@ number of tracks — over one locus or several side by side.
 pip install ggtracks-python
 ```
 
+## Documentation
+
+Concepts (coordinate contract, mapper, composition) and the full API
+reference are an MkDocs site:
+
+```bash
+pip install -e ".[docs]"
+mkdocs serve        # or: mkdocs build --strict
+```
+
 ## Quick start
 
 From an annotation file and a signal file — no hand-built frames:

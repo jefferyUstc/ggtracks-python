@@ -1,0 +1,90 @@
+site_name: ggtracks
+site_description: Grammar-of-graphics genomic tracks for the ggplot2-python ecosystem
+site_url: https://jefferyUstc.github.io/ggtracks-python/
+repo_url: https://github.com/jefferyUstc/ggtracks-python
+repo_name: jefferyUstc/ggtracks-python
+edit_uri: edit/main/docs/
+docs_dir: docs
+# Build-time helper, not content.
+exclude_docs: |
+  griffe_rest_roles.py
+# Flat ``page.html`` files (not ``page/index.html``) so the built site also
+# opens straight off the filesystem, matching lrdata and scLR.
+use_directory_urls: false
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+watch:
+  - ggtracks
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: numpy
+            docstring_section_style: table
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_source: true
+            members_order: source
+            filters: ["!^_"]
+            merge_init_into_class: true
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            extensions:
+              - docs/griffe_rest_roles.py:ReSTRoles
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Concepts:
+      - One coordinate dialect: concepts/coordinates.md
+      - The coordinate model: concepts/mapper.md
+      - Composing figures: concepts/composition.md
+  - API reference:
+      - Readers (ggtracks.io): reference/io.md
+      - Coordinate model & scales: reference/coordinates.md
+      - Geoms & stats: reference/geoms.md
+      - Composition & output: reference/composition.md
+      - Locus & transcript helpers: reference/helpers.md
+      - Theme & palettes: reference/style.md
