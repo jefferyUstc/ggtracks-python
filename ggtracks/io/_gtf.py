@@ -18,6 +18,13 @@ conventions are translated.
 feature names are normalised to one vocabulary: ``gene``, ``transcript``,
 ``exon``, ``CDS``, ``five_prime_utr``, ``three_prime_utr``.
 
+GFF3 types its records with SO terms, so gene- and transcript-level
+records are recognised *structurally* rather than by name: a gene is any
+top-level ``*gene`` record (``gene``, ``ncRNA_gene``, ``pseudogene``, …)
+and a transcript is any direct child of one (``mRNA``, ``lnc_RNA``,
+``miRNA``, ``pseudogenic_transcript``, …). Matching the two literal
+names instead would silently drop every non-coding transcript.
+
 One difference is a real disagreement between the formats rather than a
 spelling, and is passed through unchanged: **GTF excludes the stop codon
 from its ``CDS`` records** (carrying it as a separate ``stop_codon`` feature,
@@ -67,6 +74,11 @@ _FEATURE_ALIASES = {
 
 _GTF_ATTR = re.compile(r'(\S+)\s+"([^"]*)"')
 
+#: Child-level features that attach to a transcript rather than a gene.
+_CHILD_FEATURES = frozenset(
+    {"exon", "CDS", "five_prime_utr", "three_prime_utr", "utr"}
+)
+
 
 def _open(path: str):
     """Open plain or gzipped text."""
@@ -100,9 +112,7 @@ def _parse_region(region: Any) -> Optional[Tuple[str, int, int]]:
     if isinstance(region, str):
         m = re.fullmatch(r"\s*([^:]+):([\d,_]+)-([\d,_]+)\s*", region)
         if not m:
-            raise ValueError(
-                f"read_annotations: region {region!r} is not 'chrom:start-end'."
-            )
+            raise ValueError(f"region {region!r} is not 'chrom:start-end'.")
         chrom, start, end = m.group(1), m.group(2), m.group(3)
         start_i = int(start.replace(",", "").replace("_", ""))
         end_i = int(end.replace(",", "").replace("_", ""))
@@ -110,9 +120,7 @@ def _parse_region(region: Any) -> Optional[Tuple[str, int, int]]:
         chrom, start_i, end_i = region
         start_i, end_i = int(start_i), int(end_i)
     if end_i <= start_i:
-        raise ValueError(
-            f"read_annotations: region end must exceed start (got {start_i}-{end_i})."
-        )
+        raise ValueError(f"region end must exceed start (got {start_i}-{end_i}).")
     return str(chrom), start_i, end_i
 
 
@@ -211,7 +219,12 @@ def read_gff3(
             if line.startswith("#"):
                 continue
             parts = line.rstrip("\n").split("\t")
-            if len(parts) < 9 or parts[2].lower() != "gene":
+            # Gene-level SO terms end in "gene" (gene, ncRNA_gene,
+            # pseudogene, …) and gene records are top-level (no Parent).
+            if len(parts) < 9 or not parts[2].lower().endswith("gene"):
+                continue
+            attrs = _gff3_attrs(parts[8])
+            if "Parent" in attrs:
                 continue
             chrom = parts[0]
             start, end = int(parts[3]), int(parts[4])
@@ -220,7 +233,6 @@ def read_gff3(
                     continue
                 if not _overlaps(start, end + 1, (reg[1], reg[2])):
                     continue
-            attrs = _gff3_attrs(parts[8])
             record_id = attrs.get("ID", "")
             gene_id = _strip_prefix(record_id)
             gene_name = attrs.get("Name", "")
@@ -244,20 +256,20 @@ def read_gff3(
             parts = line.rstrip("\n").split("\t")
             if len(parts) < 9:
                 continue
-            feature = _canonical_feature(parts[2])
-            if feature is None or feature == "gene":
-                continue
             attrs = _gff3_attrs(parts[8])
             parent = attrs.get("Parent", "")
             if not parent:
                 continue
+            feature = _canonical_feature(parts[2])
             chrom = parts[0]
             start, end = int(parts[3]), int(parts[4])
             strand = parts[6]
 
-            if feature == "transcript":
-                if parent not in gene_of:
-                    continue
+            if feature in _CHILD_FEATURES:
+                pending.append((chrom, start, end + 1, strand, feature, parent))
+            elif parent in gene_of:
+                # Any direct child of a gene is transcript-level, whatever
+                # SO term spells it (mRNA, lnc_RNA, pseudogenic_transcript…).
                 gene_id, gene_name = gene_of[parent]
                 record_id = attrs.get("ID", "")
                 tx_id = _strip_prefix(record_id)
@@ -265,8 +277,6 @@ def read_gff3(
                 rows.append(
                     (chrom, start, end + 1, strand, "transcript", gene_id, gene_name, tx_id)
                 )
-            else:
-                pending.append((chrom, start, end + 1, strand, feature, parent))
 
     for chrom, xstart, xend, strand, feature, parent in pending:
         owner = tx_of.get(parent)

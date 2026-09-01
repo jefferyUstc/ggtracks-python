@@ -23,6 +23,7 @@ from ggtracks.io import (
     detect_chrom_style,
     normalize_chrom,
     read_annotations,
+    read_bed,
     read_bedgraph,
     read_cytoband,
     resolve_chrom,
@@ -65,6 +66,38 @@ GFF3 = """\
 # BED-family: 0-based half-open.
 BEDGRAPH = "chr7\t99\t199\t1.0\nchr7\t199\t299\t3.0\nchr7\t399\t499\t2.0\n"
 CYTOBAND = "chr7\t0\t1000\tp11\tgneg\nchr7\t1000\t1500\tp10\tacen\nchr7\t1500\t3000\tq11\tgpos50\n"
+
+BED6 = (
+    "track name=peaks\n"
+    "chr7\t99\t199\tpeak1\t50\t+\n"
+    "chr7\t399\t499\tpeak2\t.\t-\n"
+)
+BED3 = "chr7\t99\t199\nchr7\t399\t499\n"
+NARROWPEAK = (
+    "chr7\t99\t199\tp1\t100\t.\t5.5\t3.2\t2.9\t40\n"
+    "chr7\t399\t499\tp2\t200\t.\t8.1\t4.0\t3.5\t-1\n"
+)
+BROADPEAK = (
+    "chr7\t99\t199\tp1\t100\t.\t5.5\t3.2\t2.9\n"
+    "chr7\t399\t499\tp2\t200\t.\t8.1\t4.0\t3.5\n"
+)
+
+# GFF3 with SO gene/transcript types beyond the coding pair: a lncRNA
+# under an ncRNA_gene and a pseudogenic transcript under a pseudogene.
+GFF3_NCRNA = """\
+##gff-version 3
+7\ttest\tgene\t100\t500\t.\t+\t.\tID=gene:G1;Name=Alpha
+7\ttest\tmRNA\t100\t500\t.\t+\t.\tID=transcript:T1;Parent=gene:G1;Name=T1
+7\ttest\texon\t100\t199\t.\t+\t.\tParent=transcript:T1
+7\ttest\texon\t400\t500\t.\t+\t.\tParent=transcript:T1
+7\ttest\tncRNA_gene\t2000\t2400\t.\t-\t.\tID=gene:G3;Name=Mhrt
+7\ttest\tlnc_RNA\t2000\t2400\t.\t-\t.\tID=transcript:T3;Parent=gene:G3;Name=T3
+7\ttest\texon\t2000\t2100\t.\t-\t.\tParent=transcript:T3
+7\ttest\texon\t2300\t2400\t.\t-\t.\tParent=transcript:T3
+7\ttest\tpseudogene\t3000\t3200\t.\t+\t.\tID=gene:G4;Name=Ps1
+7\ttest\tpseudogenic_transcript\t3000\t3200\t.\t+\t.\tID=transcript:T4;Parent=gene:G4
+7\ttest\texon\t3000\t3200\t.\t+\t.\tParent=transcript:T4
+"""
 
 
 @pytest.fixture
@@ -218,6 +251,163 @@ def test_feature_vocabulary_is_normalised(gff3):
     features = set(read_annotations(gff3).feature)
     assert "transcript" in features and "mRNA" not in features
     assert "five_prime_utr" in features and "five_prime_UTR" not in features
+
+
+# --------------------------------------------------------------------------
+# GFF3 beyond the coding vocabulary
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def gff3_ncrna(tmp_path):
+    p = tmp_path / "nc.gff3"
+    p.write_text(GFF3_NCRNA)
+    return str(p)
+
+
+def test_gff3_noncoding_transcripts_survive(gff3_ncrna):
+    """lnc_RNA under ncRNA_gene is a transcript like any other; silently
+    dropping it (the literal-name matching bug) loses whole loci."""
+    df = read_annotations(gff3_ncrna)
+    mhrt = df[df.gene_name == "Mhrt"]
+    assert set(mhrt.feature) == {"gene", "transcript", "exon"}
+    assert len(mhrt[mhrt.feature == "exon"]) == 2
+    assert set(mhrt[mhrt.feature == "transcript"].tx_id) == {"T3"}
+    exon = mhrt[(mhrt.feature == "exon") & (mhrt.xstart == 2000)].iloc[0]
+    assert exon.xend == 2101  # 1-based inclusive 2000..2100 -> half-open
+
+
+def test_gff3_pseudogenes_are_gene_level(gff3_ncrna):
+    df = read_annotations(gff3_ncrna)
+    ps = df[df.gene_name == "Ps1"]
+    assert "gene" in set(ps.feature)
+    assert set(ps[ps.feature == "transcript"].tx_id) == {"T4"}
+
+
+def test_gff3_gene_filter_matches_noncoding_genes(gff3_ncrna):
+    df = read_annotations(gff3_ncrna, genes=["Mhrt"])
+    assert set(df.gene_name) == {"Mhrt"}
+    assert "transcript" in set(df.feature)
+
+
+def test_gff3_so_terms_are_normalised_to_the_vocabulary(gff3_ncrna):
+    features = set(read_annotations(gff3_ncrna).feature)
+    assert "lnc_RNA" not in features and "ncRNA_gene" not in features
+    assert features <= {"gene", "transcript", "exon", "CDS",
+                        "five_prime_utr", "three_prime_utr", "utr"}
+
+
+# --------------------------------------------------------------------------
+# BED / narrowPeak / broadPeak
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def bed6(tmp_path):
+    p = tmp_path / "peaks.bed"
+    p.write_text(BED6)
+    return str(p)
+
+
+@pytest.fixture
+def narrowpeak(tmp_path):
+    p = tmp_path / "peaks.narrowPeak"
+    p.write_text(NARROWPEAK)
+    return str(p)
+
+
+def test_bed_is_lifted_to_one_based(bed6):
+    df = read_bed(bed6)
+    assert df.iloc[0].xstart == 100  # BED 99 -> 1-based 100
+    assert df.iloc[0].xend == 200
+    assert df.iloc[0].xend - df.iloc[0].xstart == 100
+
+
+def test_bed_keeps_the_fields_it_finds(bed6, tmp_path):
+    assert list(read_bed(bed6).columns) == [
+        "chrom", "xstart", "xend", "name", "score", "strand"]
+    p3 = tmp_path / "b3.bed"
+    p3.write_text(BED3)
+    assert list(read_bed(str(p3)).columns) == ["chrom", "xstart", "xend"]
+
+
+def test_bed_dot_score_is_nan(bed6):
+    df = read_bed(bed6)
+    assert df.score.iloc[0] == 50.0
+    assert np.isnan(df.score.iloc[1])
+
+
+def test_narrowpeak_columns_and_peak_position(narrowpeak):
+    df = read_bed(narrowpeak)
+    assert list(df.columns) == [
+        "chrom", "xstart", "xend", "name", "score", "strand",
+        "signal_value", "p_value", "q_value", "peak"]
+    # peak offset 40 from BED start 99 -> absolute 1-based 140
+    assert df.peak.iloc[0] == 140.0
+    assert np.isnan(df.peak.iloc[1])  # -1 means "not called"
+    assert df.signal_value.iloc[0] == 5.5
+
+
+def test_broadpeak_has_no_peak_column(tmp_path):
+    p = tmp_path / "b.broadPeak"
+    p.write_text(BROADPEAK)
+    df = read_bed(str(p))
+    assert "peak" not in df.columns
+    assert list(df.columns[-3:]) == ["signal_value", "p_value", "q_value"]
+
+
+def test_bed_format_is_inferred_but_overridable(narrowpeak, tmp_path):
+    assert "signal_value" in read_bed(narrowpeak).columns  # from extension
+    p = tmp_path / "renamed.bed"
+    p.write_text(NARROWPEAK)
+    assert "signal_value" in read_bed(str(p), format="narrowPeak").columns
+    assert "signal_value" not in read_bed(str(p)).columns  # first 6 kept
+
+
+def test_bed_region_filter_tolerates_chr_prefix(bed6):
+    df = read_bed(bed6, region="7:50-250")
+    assert len(df) == 1
+    assert df.iloc[0]["name"] == "peak1"
+    tup = read_bed(bed6, region=("7", 50, 250))
+    assert len(tup) == 1
+
+
+def test_bed_chrom_style_rewrites_names(bed6):
+    assert set(read_bed(bed6, chrom_style="ensembl").chrom) == {"7"}
+
+
+def test_bed_gzip_is_transparent(tmp_path):
+    p = tmp_path / "peaks.bed.gz"
+    with gzip.open(p, "wt") as fh:
+        fh.write(BED6)
+    assert len(read_bed(str(p))) == 2
+
+
+def test_bed_rejects_short_lines(tmp_path):
+    p = tmp_path / "bad.bed"
+    p.write_text("chr7\t99\n")
+    with pytest.raises(ValueError, match="expected at least 3"):
+        read_bed(str(p))
+
+
+def test_narrowpeak_rejects_underfilled_lines(tmp_path):
+    p = tmp_path / "bad.narrowPeak"
+    p.write_text(BROADPEAK)  # 9 fields, narrowPeak needs 10
+    with pytest.raises(ValueError, match="expected at least 10"):
+        read_bed(str(p))
+
+
+def test_bed_bad_format_fails_loud(bed6):
+    with pytest.raises(ValueError, match="narrowPeak"):
+        read_bed(bed6, format="gtf")
+
+
+def test_bed_empty_file_keeps_the_contract(tmp_path):
+    p = tmp_path / "empty.bed"
+    p.write_text("# nothing here\n")
+    df = read_bed(str(p))
+    assert df.empty
+    assert list(df.columns) == ["chrom", "xstart", "xend"]
 
 
 # --------------------------------------------------------------------------

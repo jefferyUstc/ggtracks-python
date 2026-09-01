@@ -14,7 +14,7 @@ Public surface
 --------------
 * readers — :mod:`ggtracks.io`: :func:`read_annotations`, :class:`BigWig` /
   :func:`read_bigwig`, :class:`BedGraph` / :func:`read_bedgraph`,
-  :func:`read_cytoband`
+  :func:`read_cytoband`, :func:`read_bed`
 * coordinate model — :class:`GenomicMapper`
 * ggplot scale / coord — :func:`scale_x_genomic`, :func:`coord_genomic`,
   :func:`genomic_transform`, :func:`base_x_scale`, :func:`signal_limits`
@@ -24,9 +24,10 @@ Public surface
   :func:`geom_highlight`, :func:`geom_zoom_link`, :func:`to_intron`,
   :class:`StatPileup` / :func:`pack_rows`
 * track composition — :class:`Track`, :func:`plot_tracks`,
-  :func:`natural_height`
+  :func:`natural_height`, :func:`vstack_gg`
 * transcript helpers — :func:`rank_transcripts`,
   :func:`collapse_transcripts`
+* locus helpers — :class:`Locus`, :func:`gene_model_layers`
 * style — :func:`theme_tracks`, :func:`track_palettes`,
   :func:`signal_palette`
 """
@@ -40,6 +41,7 @@ from .io import (
     BedGraph,
     BigWig,
     read_annotations,
+    read_bed,
     read_bedgraph,
     read_bigwig,
     read_cytoband,
@@ -77,9 +79,11 @@ from .geom_coverage import (
     stat_bin_coverage,
 )
 from .transcripts import collapse_transcripts, rank_transcripts
+from .locus import Locus, gene_model_layers
 from .stat_pileup import StatPileup, pack_rows
 from .plot_tracks import Track, plot_tracks
 from ._render import finalize_gg, natural_height
+from ._stack import vstack_gg
 
 try:
     __version__ = _version("ggtracks-python")
@@ -94,6 +98,7 @@ __all__ = [
     "BedGraph",
     "read_bedgraph",
     "read_cytoband",
+    "read_bed",
     "GenomicMapper",
     "scale_x_genomic",
     "coord_genomic",
@@ -128,10 +133,13 @@ __all__ = [
     "stat_bin_coverage",
     "rank_transcripts",
     "collapse_transcripts",
+    "Locus",
+    "gene_model_layers",
     "StatPileup",
     "pack_rows",
     "Track",
     "plot_tracks",
     "finalize_gg",
     "natural_height",
+    "vstack_gg",
 ]

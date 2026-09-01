@@ -35,11 +35,18 @@ dependencies = [
     "pandas",
     "ggplot2-python",
     "ggh4x-python",
-    "ggnewscale-python"
+    "ggnewscale-python",
+    "patchwork-python",
 ]
 
 [project.optional-dependencies]
 test = ["pytest>=7"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
+
+[project.urls]
+Homepage = "https://github.com/jefferyUstc/ggtracks-python"
+Repository = "https://github.com/jefferyUstc/ggtracks-python"
+Documentation = "https://jefferyUstc.github.io/ggtracks-python/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ggtracks"]

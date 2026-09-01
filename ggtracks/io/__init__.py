@@ -26,6 +26,8 @@ Readers
 -------
 * :func:`read_annotations` (plus :func:`read_gtf`, :func:`read_gff3`) —
   gene models.
+* :func:`read_bed` — BED / narrowPeak / broadPeak interval features
+  (peak calls, generic regions).
 * :class:`BigWig` / :func:`read_bigwig` — indexed signal, with zoom-level
   support for wide regions.
 * :class:`BedGraph` / :func:`read_bedgraph` — unindexed signal.
@@ -35,6 +37,7 @@ Readers
 
 from __future__ import annotations
 
+from ._bed import read_bed
 from ._bedgraph import BedGraph, read_bedgraph
 from ._bigwig import BigWig, read_bigwig
 from ._chrom import (
@@ -51,6 +54,7 @@ __all__ = [
     "read_gtf",
     "read_gff3",
     "FEATURE_COLUMNS",
+    "read_bed",
     "BigWig",
     "read_bigwig",
     "BedGraph",
