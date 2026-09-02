@@ -10,6 +10,8 @@ both, with the orientation simply setting the rectangle's ``vjust``.
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -48,9 +50,9 @@ class GeomRange(GeomTile):
     required_aes: Tuple[str, ...] = ("xstart", "xend", "y")
     non_missing_aes: Tuple[str, ...] = ()
     default_aes: Mapping = Mapping(
-        fill="grey",
-        colour="black",
-        linewidth=0.25,
+        fill=FEATURE_COLOURS["cds"],
+        colour="white",
+        linewidth=0.3,
         linetype=1,
         alpha=None,
         height=None,
@@ -115,7 +117,7 @@ class GeomRange(GeomTile):
                 gp=Gpar(
                     col=coords["colour"].values if "colour" in coords.columns else None,
                     fill=_fill_alpha(
-                        coords["fill"].values if "fill" in coords.columns else "grey",
+                        coords["fill"].values if "fill" in coords.columns else FEATURE_COLOURS["cds"],
                         coords["alpha"].values if "alpha" in coords.columns else None,
                     ),
                     lwd=(

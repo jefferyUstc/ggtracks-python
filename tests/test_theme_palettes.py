@@ -142,3 +142,23 @@ def test_bad_n_fails_loud(bad):
 def test_qualitative_and_sequential_are_distinct_families():
     """Guards the documented split: categories vs intensity."""
     assert set(ggt.TRACK_PALETTES) & set(ggt.SIGNAL_PALETTES) == set()
+
+
+# --------------------------------------------------------------------------
+# FEATURE_COLOURS + the default qualitative palette
+# --------------------------------------------------------------------------
+
+
+def test_feature_roles_are_the_geom_defaults():
+    roles = {"cds", "exon", "intron", "signal", "junction", "highlight", "read", "accent"}
+    assert set(ggt.FEATURE_COLOURS) == roles
+    assert ggt.GeomRange.default_aes["fill"] == ggt.FEATURE_COLOURS["cds"]
+    assert ggt.GeomIntron.default_aes["colour"] == ggt.FEATURE_COLOURS["intron"]
+    assert ggt.GeomJunction.default_aes["colour"] == ggt.FEATURE_COLOURS["junction"]
+    assert ggt.GeomCoverage.default_aes["fill"] == ggt.FEATURE_COLOURS["signal"]
+
+
+def test_default_qualitative_palette_is_ggtracks():
+    assert ggt.track_palettes() == ggt.TRACK_PALETTES["ggtracks"]
+    assert len(ggt.TRACK_PALETTES["ggtracks"]) == 15
+    assert len(set(ggt.TRACK_PALETTES["ggtracks"])) == 15

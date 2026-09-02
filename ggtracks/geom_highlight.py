@@ -17,6 +17,8 @@ rather than a new geom:
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from typing import Any, Optional
 
 import numpy as np
@@ -33,8 +35,8 @@ def geom_highlight(
     *,
     xstart: Optional[float] = None,
     xend: Optional[float] = None,
-    fill: str = "#FFD54F",
-    alpha: float = 0.25,
+    fill: str = FEATURE_COLOURS["highlight"],
+    alpha: float = 0.2,
     colour: Any = None,
     inherit_aes: bool = False,
     **kwargs: Any,

@@ -12,6 +12,8 @@ taller CDS boxes, introns with strand arrows), ready to drop into a
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple
 
@@ -126,8 +128,8 @@ def gene_model_layers(
     *,
     y: float = 1.0,
     track: Optional[str] = None,
-    exon_fill: str = "#B7C9E2",
-    cds_fill: str = "#4F7DB3",
+    exon_fill: str = FEATURE_COLOURS["exon"],
+    cds_fill: str = FEATURE_COLOURS["cds"],
     exon_height: float = 0.3,
     cds_height: float = 0.55,
 ) -> List[Any]:

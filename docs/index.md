@@ -72,7 +72,7 @@ ggt.plot_tracks(
 | Geoms & stats ([reference](reference/geoms.md)) | `geom_range`, `geom_intron`, `geom_junction`, `geom_coverage` + `StatBinCoverage`, `geom_ideogram` + `scale_fill_giemsa`, `geom_highlight`, `geom_zoom_link`, `StatPileup` / `pack_rows` |
 | Composition ([concepts](concepts/composition.md)) | `Track` + `plot_tracks`, `vstack_gg`, `finalize_gg` / `natural_height` |
 | Helpers | `Locus`, `gene_model_layers`, `rank_transcripts`, `collapse_transcripts`, `to_intron` |
-| Style | `theme_tracks`, `track_palettes` (categories), `signal_palette` (intensity) |
+| Style | `theme_tracks`, `FEATURE_COLOURS` (roles), `track_palettes` (categories), `signal_palette` (intensity) |
 
 ## Where to go
 

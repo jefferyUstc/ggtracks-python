@@ -177,7 +177,7 @@ def test_default_gradient_runs_pale_to_deep():
     import inspect
 
     default = inspect.signature(geom_zoom_link).parameters["colours"].default
-    assert tuple(default) == ("#E0E0E0", "#404040")
+    assert tuple(default) == ("#E4E8EC", ggt.FEATURE_COLOURS["intron"])
 
 
 def test_works_alongside_a_highlight(tmp_path):

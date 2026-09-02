@@ -1,11 +1,20 @@
-"""Colour palettes for track plots — two families, two jobs.
+"""Colour palettes for track plots — three jobs, three vocabularies.
 
-**Qualitative** (:data:`TRACK_PALETTES` / :func:`track_palettes`) — the
-ArchR / Kelly / Wes-Anderson families commonly used for genomics tracks.
-Use these for **categories**: read clusters, cell types, feature classes.
-Exposed as a simple getter so track geoms can drive
-``scale_fill_manual``/``scale_colour_manual`` with a coherent,
-colour-blind-aware set rather than ad-hoc hex literals.
+**Feature roles** (:data:`FEATURE_COLOURS`) — what a gene-model figure is
+*made of*: coding blocks, non-coding blocks, intron connectors, a lone
+signal track, junction arcs, a highlight band, read rows, and one accent.
+Every geom's default colour comes from here, so an unstyled figure already
+reads as one system, and a caller who needs a role names it instead of
+repeating a hex literal.
+
+**Qualitative** (:data:`TRACK_PALETTES` / :func:`track_palettes`) — for
+**categories**: read clusters, cell types, feature classes. The default,
+``"ggtracks"``, is the house palette, ordered so that every *adjacent*
+pair of slots stays apart under simulated colour-vision deficiency (see
+the entry's note); the ArchR / Kelly / Wes-Anderson families are kept as
+alternatives. Exposed as a simple getter so track geoms can drive
+``scale_fill_manual`` / ``scale_colour_manual`` with a coherent set rather
+than ad-hoc hex literals.
 
 **Sequential** (:data:`SIGNAL_PALETTES` / :func:`signal_palette`) — light→dark
 ramps for **signal tracks** (coverage, pileup depth, IP vs input). Genome
@@ -26,13 +35,45 @@ from __future__ import annotations
 from typing import Optional
 
 __all__ = [
+    "FEATURE_COLOURS",
     "TRACK_PALETTES",
     "track_palettes",
     "SIGNAL_PALETTES",
     "signal_palette",
 ]
 
+#: The colour of each thing a track figure is made of. Blues carry the gene
+#: model (coding dark, non-coding light — the same hue family, so they read
+#: as one gene), a slate neutral carries connectors, magenta carries
+#: junction arcs so they never merge with the model, gold is the region
+#: band, muted aqua the read rows, and one red is reserved for emphasis.
+#: The hues share a family with the ``"ggtracks"`` qualitative palette, so
+#: a figure sits next to a categorical panel without a visible seam.
+FEATURE_COLOURS: dict[str, str] = {
+    "cds": "#1F577B",
+    "exon": "#78C2ED",
+    "intron": "#4C5A66",
+    "signal": "#279AD7",
+    "junction": "#E069A6",
+    "highlight": "#FCBC10",
+    "read": "#9DC3C3",
+    "accent": "#CB3E35",
+}
+
+#: Qualitative palettes. ``"ggtracks"`` is the default: the house hues,
+#: pruned to the slots that hold enough lightness and chroma to do identity
+#: work and ordered so every adjacent pair clears a simulated-CVD distance
+#: of 9 (12.7 across the first eight) and a normal-vision distance of 15
+#: (OKLab ΔE ×100 under simulated protanopia / deuteranopia, checked with a
+#: palette validator against a white surface). Four slots
+#: (orange, leaf, olive, coral) sit below 3:1 contrast on white and rely on
+#: the strip label or legend that every track figure carries.
 TRACK_PALETTES: dict[str, list[str]] = {
+    "ggtracks": [
+        "#279AD7", "#D48F3E", "#E069A6", "#368650", "#5E4D9A",
+        "#01A0A7", "#CB3E35", "#941456", "#A56BA7", "#7CBB5F",
+        "#D3396D", "#B6B812", "#EF7B77", "#5860A7", "#6E944A",
+    ],
     "stallion": [
         "#D51F26", "#272E6A", "#208A42", "#89288F", "#F47D2B",
         "#FEE500", "#8A9FD1", "#C06CAB", "#E6C2DC", "#90D5E4",
@@ -85,14 +126,14 @@ TRACK_PALETTES: dict[str, list[str]] = {
 }
 
 
-def track_palettes(name: str = "stallion", n: Optional[int] = None) -> list[str]:
+def track_palettes(name: str = "ggtracks", n: Optional[int] = None) -> list[str]:
     """Return the hex colours of a named palette.
 
     Parameters
     ----------
     name
-        One of :data:`TRACK_PALETTES` (default ``"stallion"``, ArchR's
-        20-colour set).
+        One of :data:`TRACK_PALETTES` (default ``"ggtracks"``, the
+        CVD-ordered house set; ``"stallion"`` is ArchR's 20 colours).
     n
         If given, return exactly *n* colours — truncating, or recycling
         with a warning when the palette is shorter than requested.
@@ -125,15 +166,16 @@ def track_palettes(name: str = "stallion", n: Optional[int] = None) -> list[str]
 
 #: Sequential light→dark ramps for signal tracks, as ``(light, dark)``
 #: endpoints. ``"grey"`` is the genome-browser default (see
-#: :func:`signal_palette`); the hued ramps keep the same lightness span
-#: at a fixed hue, for when several signal groups must also be told apart.
+#: :func:`signal_palette`); the hued ramps run from a pale tint to the dark
+#: member of the matching hue family, for when several signal groups must
+#: also be told apart.
 SIGNAL_PALETTES: dict[str, tuple[str, str]] = {
     "grey": ("#D0D0D0", "#1A1A1A"),
-    "blue": ("#DEEBF7", "#08306B"),
-    "red": ("#FEE0D2", "#67000D"),
-    "green": ("#E5F5E0", "#00441B"),
-    "purple": ("#EFEDF5", "#3F007D"),
-    "orange": ("#FEE6CE", "#7F2704"),
+    "blue": ("#C9E4F6", "#1F577B"),
+    "red": ("#F0C3C3", "#5A1713"),
+    "green": ("#CDE5D2", "#2D5C33"),
+    "purple": ("#D8C9DC", "#823D86"),
+    "orange": ("#F3DEB6", "#745228"),
 }
 
 

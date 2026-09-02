@@ -19,6 +19,8 @@ what would otherwise drift the moment the figure is resized.
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import numpy as np
@@ -70,7 +72,7 @@ class GeomZoomLink(Geom):
         data: pd.DataFrame,
         panel_params: Any,
         coord: Any,
-        colours: Sequence[str] = ("#E0E0E0", "#404040"),
+        colours: Sequence[str] = ("#E4E8EC", FEATURE_COLOURS["intron"]),
         flip: bool = False,
         na_rm: bool = False,
         **params: Any,
@@ -128,7 +130,7 @@ def geom_zoom_link(
     xstart: Optional[float] = None,
     xend: Optional[float] = None,
     track: Optional[str] = None,
-    colours: Sequence[str] = ("#E0E0E0", "#404040"),
+    colours: Sequence[str] = ("#E4E8EC", FEATURE_COLOURS["intron"]),
     flip: bool = False,
     na_rm: bool = False,
     show_legend: Any = None,

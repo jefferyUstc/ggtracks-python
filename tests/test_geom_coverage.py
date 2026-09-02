@@ -128,7 +128,7 @@ def test_bad_style_fails_loud(tmp_path):
 
 def test_default_aes_keep_the_fill_translucent_and_the_outline_opaque():
     d = _built(ggt.geom_coverage())
-    assert d["alpha"].iloc[0] == pytest.approx(0.8)
+    assert d["alpha"].iloc[0] == pytest.approx(0.85)
     assert d["fill"].iloc[0] == d["colour"].iloc[0]
     assert d["linewidth"].iloc[0] == pytest.approx(0.3)
 

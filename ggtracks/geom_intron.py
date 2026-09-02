@@ -16,6 +16,8 @@ Faithful port of ggtranscript's intron tooling (``to_intron.R``,
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -107,7 +109,7 @@ class GeomIntron(GeomSegment):
     required_aes: Tuple[str, ...] = ("xstart", "xend", "y")
     non_missing_aes: Tuple[str, ...] = ()
     default_aes: Mapping = Mapping(
-        colour="black",
+        colour=FEATURE_COLOURS["intron"],
         linewidth=0.5,
         linetype=1,
         alpha=None,

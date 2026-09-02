@@ -23,6 +23,8 @@ relative to the baseline ``y``.
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -59,11 +61,11 @@ class GeomJunction(GeomLine):
     optional_aes: Tuple[str, ...] = ("count",)
     non_missing_aes: Tuple[str, ...] = ()
     default_aes: Mapping = Mapping(
-        colour="black",
+        colour=FEATURE_COLOURS["junction"],
         linewidth=0.5,
         linetype=1,
         alpha=None,
-        fill="grey50",
+        fill=FEATURE_COLOURS["junction"],
     )
 
     def setup_data(self, data: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
@@ -182,7 +184,7 @@ class GeomJunction(GeomLine):
             poly = pd.concat([g_out, g_in.iloc[::-1]], ignore_index=True)
             poly["group"] = gid
             if "fill" not in poly.columns:
-                poly["fill"] = "grey50"
+                poly["fill"] = FEATURE_COLOURS["junction"]
             children.append(
                 GeomPolygon.draw_panel(GeomPolygon(), poly, panel_params, coord)
             )

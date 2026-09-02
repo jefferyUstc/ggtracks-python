@@ -21,6 +21,8 @@ the bins on introns that occupy a sliver of the axis.
 
 from __future__ import annotations
 
+from .palettes import FEATURE_COLOURS
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -97,11 +99,11 @@ class GeomCoverage(Geom):
     optional_aes: Tuple[str, ...] = ("ymin",)
     non_missing_aes: Tuple[str, ...] = ()
     default_aes: Mapping = Mapping(
-        fill="grey35",
-        colour="grey35",
+        fill=FEATURE_COLOURS["signal"],
+        colour=FEATURE_COLOURS["signal"],
         linewidth=0.3,
         linetype=1,
-        alpha=0.8,
+        alpha=0.85,
     )
     # The legend key must show what the geom draws: a filled patch, not the
     # base class's point — which would also ignore ``fill`` entirely.

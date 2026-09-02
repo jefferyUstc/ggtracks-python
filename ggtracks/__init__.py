@@ -28,8 +28,8 @@ Public surface
 * transcript helpers — :func:`rank_transcripts`,
   :func:`collapse_transcripts`
 * locus helpers — :class:`Locus`, :func:`gene_model_layers`
-* style — :func:`theme_tracks`, :func:`track_palettes`,
-  :func:`signal_palette`
+* style — :func:`theme_tracks`, :data:`FEATURE_COLOURS`,
+  :func:`track_palettes`, :func:`signal_palette`
 """
 
 from __future__ import annotations
@@ -55,6 +55,7 @@ from .scale import (
     signal_limits,
 )
 from .palettes import (
+    FEATURE_COLOURS,
     SIGNAL_PALETTES,
     TRACK_PALETTES,
     signal_palette,
@@ -105,6 +106,7 @@ __all__ = [
     "genomic_transform",
     "base_x_scale",
     "signal_limits",
+    "FEATURE_COLOURS",
     "track_palettes",
     "TRACK_PALETTES",
     "signal_palette",

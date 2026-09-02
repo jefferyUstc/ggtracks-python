@@ -25,10 +25,17 @@ stacked-track look of a genome browser:
   tracks should read as *one* figure; ggplot2's default half-line gap
   makes them read as several. Being derived from ``base_size`` it
   rescales with the typography instead of being a fixed measure.
+* **Chrome recedes, data stays dark.** Facet strips are a pale cool
+  wash with no outline instead of ``theme_bw``'s grey85 box in a grey20
+  frame, and tick marks, tick labels and titles use a muted ink rather
+  than pure black, so the strip that names a track is read *after* the
+  track itself.
 
 All grammar ``pl.*`` track functions take a ``base_size`` argument that is
 forwarded here, so a single number tunes every figure's typography *and*
 its spacing.
+
+Palettes are adaptive from https://github.com/omicverse/omicverse.
 """
 
 from __future__ import annotations
@@ -38,6 +45,14 @@ from typing import Any, Optional
 import ggplot2_py as gg
 
 __all__ = ["PUB_BASE_SIZE", "PANEL_BORDER_COLOUR", "theme_tracks"]
+
+#: Facet-strip wash; the pale cool grey behind every track name.
+STRIP_FILL: str = "#EEF1F4"
+#: Ink for titles and strip labels, and the lighter ink for tick labels.
+INK: str = "#2B2B2B"
+INK_MUTED: str = "#5A5A5A"
+#: Tick-mark colour.
+TICK_COLOUR: str = "#A0A0A0"
 
 #: Default publication base font size (points). Body text and axis titles
 #: render at this size; tick / strip / legend labels at ~0.9–0.95× (lifted
@@ -93,10 +108,13 @@ def theme_tracks(
     )
 
     return gg.theme_bw(base_size=base_size) + gg.theme(
-        axis_text=gg.element_text(size=gg.rel(0.9)),
-        strip_text=gg.element_text(size=gg.rel(0.95)),
-        strip_text_y=gg.element_text(size=gg.rel(0.95), angle=0),
-        legend_text=gg.element_text(size=gg.rel(0.9)),
+        axis_text=gg.element_text(size=gg.rel(0.9), colour=INK_MUTED),
+        axis_ticks=gg.element_line(colour=TICK_COLOUR),
+        strip_background=gg.element_rect(fill=STRIP_FILL, colour="none"),
+        strip_text=gg.element_text(size=gg.rel(0.95), colour=INK),
+        strip_text_y=gg.element_text(size=gg.rel(0.95), angle=0, colour=INK),
+        legend_text=gg.element_text(size=gg.rel(0.9), colour=INK_MUTED),
+        plot_title=gg.element_text(colour=INK),
         panel_border=border,
         panel_grid_major=(gg.element_line() if major_grid else gg.element_blank()),
         panel_grid_minor=(gg.element_line() if minor_grid else gg.element_blank()),
